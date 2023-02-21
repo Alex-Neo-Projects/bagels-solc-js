@@ -2,12 +2,12 @@ import { downloadSpecificVersion, getVersionList } from "./downloadSpecificVersi
 import wrapper from './wrapper';
 import os from 'os';
 import fs from 'fs';
-import path from 'path'; 
+import path from 'path';
 import * as semver from 'semver';
 
 export const SOLC_INSTALLATION_DIRECTORY = os.homedir() + '/.bagels';
 
-// Important to note: 
+// Important to note:
 // contractSolVersion can be any semver type of string
 // Examples: >0.5.1, =0.5.5, etc, etc
 export default async function specificSolVersion(contractSolVersion?: string):Promise<any> {
@@ -31,7 +31,6 @@ export default async function specificSolVersion(contractSolVersion?: string):Pr
     } 
     // Download a valid solc version
     else { 
-      console.log('b4 valid solc');
       const wrapperOutput = await downloadValidSolcVersion(contractSolVersion);
       resolve(wrapperOutput);
     }
@@ -119,6 +118,7 @@ export function getInstalledVersions() {
 }
 
 function isValidVersion(version, contractPragmaVersion) { 
+  if (!contractPragmaVersion) { return false }
   let satisfied = semver.satisfies(version, contractPragmaVersion);
       
   // Need to figure out if the major + minor versions are the same b/c minor version upgrades 0.x.1 can include breaking changes

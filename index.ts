@@ -11,55 +11,66 @@ export const SOLC_INSTALLATION_DIRECTORY = os.homedir() + '/.bagels';
 // contractSolVersion can be any semver type of string
 // Examples: >0.5.1, =0.5.5, etc, etc
 export default async function specificSolVersion(contractSolVersion?: string):Promise<any> {
-  if (!contractSolVersion) {
-    // If no input passed, just return the default (whatever the package version # is)
-    // Only doing this to keep the base test cases intact (this is what gets returned for those)
-    const soljson = require('./soljson.js');
-    return wrapper(soljson);
-  }
-  
-  const validInstalledSolVersion = getInstalledValidVersion(contractSolVersion);
-
-  if (validInstalledSolVersion) {
-    try { 
-      const soljson = require(validInstalledSolVersion);
-      return wrapper(soljson);
-    } catch (e) {
-      console.log(e);
+  return new Promise(async (resolve, reject) => {
+    if (!contractSolVersion) {
+      // If no input passed, just return the default (whatever the package version # is)
+      // Only doing this to keep the base test cases intact (this is what gets returned for those)
+      const soljson = require('./soljson.js');
+      resolve(wrapper(soljson));
     }
-  } 
-  // Download a valid solc version
-  else { 
-    await downloadValidSolcVersion(contractSolVersion);
-  }
+    
+    const validInstalledSolVersion = getInstalledValidVersion(contractSolVersion);
+  
+    if (validInstalledSolVersion) {
+      try { 
+        const soljson = require(validInstalledSolVersion);
+        resolve(wrapper(soljson));
+      } catch (e) {
+        reject(e);
+      }
+    } 
+    // Download a valid solc version
+    else { 
+      console.log('b4 valid solc');
+      const wrapperOutput = await downloadValidSolcVersion(contractSolVersion);
+      resolve(wrapperOutput);
+    }
+  })
 }
 
 export async function downloadValidSolcVersion(contractSolVersion) {
-  let list = await getVersionList();
-  let parsedList = JSON.parse(list);
+  return new Promise(async (resolve, reject) => {
+    try { 
+      let list = await getVersionList();
+      let parsedList = JSON.parse(list);
+        
+      const releases = parsedList['releases'];
+      let validSolcVersionToDownload: string | null;
     
-  const releases = parsedList['releases'];
-  let validSolcVersionToDownload: string | null;
-
-  for (const key in releases) { 
-    if (isValidVersion(key, contractSolVersion)) {
-      validSolcVersionToDownload = key;
-      break;
+      for (const key in releases) { 
+        if (isValidVersion(key, contractSolVersion)) {
+          validSolcVersionToDownload = key;
+          break;
+        }
+      }
+    
+      if (!validSolcVersionToDownload) {
+        throw new Error("Couldn't find a valid solc version to download. Is the pragma solidity line valid?")
+      }
+    
+      console.log(`downloading solc-js v${validSolcVersionToDownload}...`);
+    
+      console.time('download finished')
+      const output = await downloadSpecificVersion(validSolcVersionToDownload);
+      console.timeEnd('download finished')
+    
+      const soljson = require(output);
+      resolve(wrapper(soljson));
+    } catch (e) { 
+      console.log('error compiling: ', e);
+      reject(e);
     }
-  }
-
-  if (!validSolcVersionToDownload) {
-    throw new Error("Couldn't find a valid solc version to download. Is the pragma solidity line valid?")
-  }
-
-  console.log(`downloading solc-js v${validSolcVersionToDownload}...`);
-
-  console.time('download finished')
-  const output = await downloadSpecificVersion(validSolcVersionToDownload);
-  console.timeEnd('download finished')
-
-  const soljson = require(output);
-  return wrapper(soljson);
+  })
 }
 export function getInstalledValidVersion(contractPragmaVersion: string): string | null {
   try { 

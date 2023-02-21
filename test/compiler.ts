@@ -7,6 +7,7 @@ import linker from '../linker';
 import { execSync } from 'child_process';
 import wrapper from '../wrapper';
 
+
 const noRemoteVersions = (process.argv.indexOf('--no-remote-versions') >= 0);
 
 function runTests (solc, versionText) {

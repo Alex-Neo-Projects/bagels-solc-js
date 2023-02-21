@@ -24,7 +24,6 @@ async function main() {
     },
   }
 
-  // console.log(solc);
   let output = JSON.parse(
     solc.compile(JSON.stringify(input)),
   )
